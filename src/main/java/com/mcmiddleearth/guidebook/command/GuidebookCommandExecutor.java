@@ -26,7 +26,6 @@ import org.bukkit.plugin.PluginDescriptionFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author Eriol_Eandur
@@ -92,13 +91,24 @@ public class GuidebookCommandExecutor implements TabExecutor {
 
         // Filter the completions
         return completions.stream()
-            .filter(completion
-                // Split the completion by '-'
-                // Useful because AreaName completions are structured <worldName>-<projectName>-<guidebookName>
-                -> Arrays.stream(completion.toLowerCase().split("-"))
-                // Include this completion if any split starts with lastArg
-                .anyMatch(part -> part.startsWith(lastArg)))
+            // AreaName completions are structured <worldName>-<projectName>-<guidebookName>
+            // So support partial matches
+            .filter(completion -> matchesAnySegment(completion, lastArg))
             .collect(Collectors.toList());
+    }
+
+    private boolean matchesAnySegment(String input, String searchTerm) {
+        String[] parts = input.toLowerCase().split("-");
+        int partsLength = parts.length;
+
+        // segment = world-gondor-minas, gondor-minas, minas
+        for (int i = 0; i < partsLength; i++) {
+            String segment = String.join("-", Arrays.copyOfRange(parts, i, partsLength));
+            if (segment.startsWith(searchTerm)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void sendNoSubcommandErrorMessage(CommandSender cs) {
